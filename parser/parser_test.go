@@ -9,7 +9,7 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 )
 
-func TestParser(t *testing.T) {
+func TestParserStruct(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
@@ -155,5 +155,44 @@ func TestParser(t *testing.T) {
 		if diff := pretty.Compare(got, tt.expected); diff != "" {
 			t.Errorf("%s: NextToken diff: (-got +want)\n%s", tt.name, diff)
 		}
+	}
+}
+
+func TestInfixParsing(t *testing.T) {
+	tests := []struct {
+		input    string
+		leftVal  int64
+		operator string
+		rightVal int64
+		wantErr  bool
+	}{
+		{"5 + 5;", 5, "+", 5, false},
+		{"5 - 5;", 5, "-", 5, false},
+		{"5 * 5;", 5, "*", 5, false},
+		{"5 / 5;", 5, "/", 5, false},
+		{"5 > 5;", 5, ">", 5, false},
+		{"5 < 5;", 5, "<", 5, false},
+		{"5 == 5;", 5, "==", 5, false},
+		{"5 != 5;", 5, "!=", 5, false},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+
+		program, err := p.ParseProgram()
+		if err != nil {
+			t.Errorf("%s: got err %v when wantErr is %v", tt.input, err, tt.wantErr)
+		}
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("%s - program.Statements does not contain %d statements. got=%d", tt.input, 1, len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("exp is not ast.InfixExpression. got=%T", stmt.Expression)
+		}
+
 	}
 }
