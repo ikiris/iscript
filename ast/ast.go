@@ -3,6 +3,7 @@ package ast
 import (
 	"bytes"
 	"iscript/token"
+	"strings"
 )
 
 type Node interface {
@@ -206,6 +207,55 @@ func (s *BlockStatement) String() string {
 	for _, st := range s.Statements {
 		out.WriteString(st.String())
 	}
+
+	return out.String()
+}
+
+type FunctionLiteral struct {
+	Token      token.Token
+	Parameters []*Identifier
+	Body       *BlockStatement
+}
+
+func (f *FunctionLiteral) expressionNode()      {}
+func (f *FunctionLiteral) TokenLiteral() string { return f.Token.Literal }
+func (f *FunctionLiteral) String() string {
+	var out bytes.Buffer
+
+	params := []string{}
+	for _, p := range f.Parameters {
+		params = append(params, p.String())
+	}
+
+	out.WriteString(f.TokenLiteral())
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(") ")
+	out.WriteString(f.Body.String())
+
+	return out.String()
+}
+
+type CallExpression struct {
+	Token     token.Token
+	Function  Expression
+	Arguments []Expression
+}
+
+func (c *CallExpression) expressionNode()      {}
+func (c *CallExpression) TokenLiteral() string { return c.Token.Literal }
+func (c *CallExpression) String() string {
+	var out bytes.Buffer
+
+	args := []string{}
+	for _, a := range c.Arguments {
+		args = append(args, a.String())
+	}
+
+	out.WriteString(c.Function.String())
+	out.WriteString("(")
+	out.WriteString(strings.Join(args, ", "))
+	out.WriteString(")")
 
 	return out.String()
 }
