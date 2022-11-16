@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"iscript/lexer"
-	"iscript/token"
+	"iscript/parser"
 )
 
 const PROMPT = ">> "
@@ -22,9 +22,15 @@ func Start(in io.Reader, out io.Writer) {
 
 		line := s.Text()
 		l := lexer.New(line)
+		p := parser.New(l)
 
-		for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
-			fmt.Fprintf(out, "%+v\n", tok)
+		prog, err := p.ParseProgram()
+		if err != nil {
+			fmt.Fprintf(out, "err: %v", err)
+			continue
 		}
+
+		io.WriteString(out, prog.String())
+		io.WriteString(out, "\n")
 	}
 }
