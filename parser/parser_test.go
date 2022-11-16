@@ -360,3 +360,47 @@ func testInfixExpression(t *testing.T, exp ast.Expression, left interface{}, ope
 
 	return testLiteralExpression(t, opExp.Right, right)
 }
+
+func TestFuncLiteralParsing(t *testing.T) {
+	input := `fn(x, y) { x + y; }`
+
+	l := lexer.New(input)
+	p := New(l)
+	program, err := p.ParseProgram()
+
+	if err != nil {
+		t.Fatalf("failed to parse program: err: %v", err)
+	}
+
+	if len(program.Statements) != 1 {
+		t.Errorf("program is not %d statements. got=%d", 1, len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got=%T", stmt.Expression)
+	}
+
+	f, ok := stmt.Expression.(*ast.FunctionLiteral)
+	if !ok {
+		t.Fatalf("stmt is not ast.FunctionLiteral. got=%T", stmt.Expression)
+	}
+
+	if len(f.Parameters) != 2 {
+		t.Fatalf("func paramters wrong, want %d, got=%d\n", 2, len(f.Parameters))
+	}
+
+	testLiteralExpression(t, f.Parameters[0], "x")
+	testLiteralExpression(t, f.Parameters[1], "y")
+
+	if len(f.Body.Statements) != 1 {
+		t.Errorf("f.body.statements is not %d statements. got=%d", 1, len(f.Body.Statements))
+	}
+
+	bodyStmt, ok := f.Body.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("f body statement is not ast.ExpressionStatement. got=%T", f.Body.Statements[0])
+	}
+
+	testInfixExpression(t, bodyStmt.Expression, "x", "+", "y")
+}
