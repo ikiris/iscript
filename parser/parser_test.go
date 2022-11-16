@@ -104,6 +104,44 @@ func TestParser(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"prefix expressions",
+			`!5;
+			-15;`,
+			&ast.Program{
+				Statements: []ast.Statement{
+					&ast.ExpressionStatement{
+						Token: token.Token{Type: "!", Literal: "!"},
+						Expression: &ast.PrefixExpression{
+							Token:    token.Token{Type: "!", Literal: "!"},
+							Operator: "!",
+							Right: &ast.IntegerLiteral{
+								Token: token.Token{
+									Type:    "INT",
+									Literal: "5",
+								},
+								Value: 5,
+							},
+						},
+					},
+					&ast.ExpressionStatement{
+						Token: token.Token{Type: "-", Literal: "-"},
+						Expression: &ast.PrefixExpression{
+							Token:    token.Token{Type: "-", Literal: "-"},
+							Operator: "-",
+							Right: &ast.IntegerLiteral{
+								Token: token.Token{
+									Type:    "INT",
+									Literal: "15",
+								},
+								Value: 15,
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
 	}
 
 	for _, tt := range tests {
