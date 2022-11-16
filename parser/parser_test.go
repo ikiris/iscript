@@ -191,8 +191,50 @@ func TestInfixParsing(t *testing.T) {
 
 		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
 		if !ok {
-			t.Fatalf("exp is not ast.InfixExpression. got=%T", stmt.Expression)
+			t.Fatalf("%s - program.Statements[0] is not ast.InfixExpression. got=%T", tt.input, stmt.Expression)
 		}
 
+		exp, ok := stmt.Expression.(*ast.InfixExpression)
+		if !ok {
+			t.Fatalf("%s - exp is not ast.InfixExpression. got=%T", tt.input, stmt.Expression)
+		}
+
+		if exp.Operator != tt.operator {
+			t.Errorf("exp.Operator is not '%s'. got=%s", tt.operator, exp.Operator)
+		}
+	}
+}
+
+func TestOpPrecedenceParsing(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"-a * b", "((-a) * b)"},
+		{"!-a", "(!(-a))"},
+		{"a + b + c", "((a + b) + c)"},
+		{"a + b - c", "((a + b) - c)"},
+		{"a * b * c", "((a * b) * c)"},
+		{"a * b / c", "((a * b) / c)"},
+		{"a + b / c", "(a + (b / c))"},
+		{"a + b * c + d / e - f", "(((a + (b * c)) + (d / e)) - f)"},
+		{"3 + 4; -5 * 5", "(3 + 4)((-5) * 5)"},
+		{"5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))"},
+		{"5 < 4 != 3 > 4", "((5 < 4) != (3 > 4))"},
+		{"3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program, err := p.ParseProgram()
+		if err != nil {
+			t.Fatalf("%s - failed to parse program: err: %v", tt.input, err)
+		}
+
+		got := program.String()
+		if diff := pretty.Compare(got, tt.expected); diff != "" {
+			t.Errorf("%s: NextToken diff: (-got +want)\n%s", tt.input, diff)
+		}
 	}
 }
