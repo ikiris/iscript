@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"iscript/evaluator"
 	"iscript/lexer"
 	"iscript/parser"
 )
@@ -30,7 +31,10 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		io.WriteString(out, prog.String())
-		io.WriteString(out, "\n")
+		evald := evaluator.Eval(prog)
+		if evald != nil {
+			io.WriteString(out, evald.Inspect())
+			io.WriteString(out, "\n")
+		}
 	}
 }
