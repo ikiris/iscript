@@ -3,111 +3,87 @@ package parser
 import (
 	"iscript/ast"
 	"iscript/lexer"
+	"iscript/token"
 	"testing"
+
+	"github.com/kylelemons/godebug/pretty"
 )
 
-func TestLetStatement(t *testing.T) {
-	input := `
+func TestParser(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected *ast.Program
+		wantErr  bool
+	}{
+		{
+			"LetStatement",
+			`
 	let x = 5;
 	let y = 10;
 	let foobar = 838383;
-	`
-
-	l := lexer.New(input)
-	p := New(l)
-
-	program := p.ParseProgram()
-	checkParseErrors(t, p)
-
-	if program == nil {
-		t.Fatalf("ParseProgram() returned nil")
+	`,
+			&ast.Program{
+				Statements: []ast.Statement{
+					&ast.LetStatement{
+						Token: token.Token{Type: "LET", Literal: "let"},
+						Name: &ast.Identifier{
+							Token: token.Token{Type: "IDENT", Literal: "x"},
+							Value: "x",
+						},
+					},
+					&ast.LetStatement{
+						Token: token.Token{Type: "LET", Literal: "let"},
+						Name: &ast.Identifier{
+							Token: token.Token{Type: "IDENT", Literal: "y"},
+							Value: "y",
+						},
+					},
+					&ast.LetStatement{
+						Token: token.Token{Type: "LET", Literal: "let"},
+						Name: &ast.Identifier{
+							Token: token.Token{Type: "IDENT", Literal: "foobar"},
+							Value: "foobar",
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"ReturnStatement",
+			`
+			return 5;
+			return 10;
+			return 993322;
+	`,
+			&ast.Program{
+				Statements: []ast.Statement{
+					&ast.ReturnStatement{
+						Token: token.Token{Type: "RETURN", Literal: "return"},
+					},
+					&ast.ReturnStatement{
+						Token: token.Token{Type: "RETURN", Literal: "return"},
+					},
+					&ast.ReturnStatement{
+						Token: token.Token{Type: "RETURN", Literal: "return"},
+					},
+				},
+			},
+			false,
+		},
 	}
 
-	if len(program.Statements) != 3 {
-		t.Fatalf("program.Statements does not contain 3 statements. got=%d",
-			len(program.Statements))
-	}
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
 
-	tests := []struct {
-		expectedIdentifier string
-	}{
-		{"x"},
-		{"y"},
-		{"foobar"},
-	}
-
-	for i, tt := range tests {
-		stmt := program.Statements[i]
-		if !testLetStatement(t, stmt, tt.expectedIdentifier) {
-			return
+		got, err := p.ParseProgram()
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: got err %v when wantErr is %v", tt.name, err, tt.wantErr)
 		}
-	}
-}
-
-func checkParseErrors(t *testing.T, p *Parser) {
-	errors := p.Errors()
-	if len(errors) == 0 {
-		return
-	}
-
-	t.Errorf("parser had %d errors", len(errors))
-	for _, msg := range errors {
-		t.Errorf("parser error: %q", msg)
-	}
-	t.FailNow()
-}
-
-func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
-	if s.TokenLiteral() != "let" {
-		t.Errorf("s.TokenLiteral not 'let'. got=%q", s.TokenLiteral())
-		return false
-	}
-
-	letStmt, ok := s.(*ast.LetStatement)
-	if !ok {
-		t.Errorf("s not *astLetStatement, got=%T", s)
-		return false
-	}
-
-	if letStmt.Name.Value != name {
-		t.Errorf("letStmt.Name.Value not '%s'. got=%s", name, letStmt.Name.Value)
-		return false
-	}
-
-	if letStmt.Name.TokenLiteral() != name {
-		t.Errorf("letStmt.Name.TokenLiteral() not '%s'. got=%s", name, letStmt.Name.TokenLiteral())
-		return false
-	}
-	return true
-}
-
-func TestReturnStatements(t *testing.T) {
-	input := `
-	return 5;
-	return 10;
-	return 993322;
-	`
-
-	l := lexer.New(input)
-	p := New(l)
-
-	program := p.ParseProgram()
-	checkParseErrors(t, p)
-
-	if len(program.Statements) != 3 {
-		t.Fatalf("program.Statements does not contain 3 statements. got=%d",
-			len(program.Statements))
-	}
-
-	for _, stmt := range program.Statements {
-		returnStmt, ok := stmt.(*ast.ReturnStatement)
-		if !ok {
-			t.Errorf("stmt not *ast.ReturnStatement. got=%T", stmt)
-			continue
-		}
-		if returnStmt.TokenLiteral() != "return" {
-			t.Errorf("returnStmt.TokenLiteral not 'return', got %q",
-				returnStmt.TokenLiteral())
+		if diff := pretty.Compare(got, tt.expected); diff != "" {
+			t.Errorf("%s: NextToken diff: (-got +want)\n%s", tt.name, diff)
 		}
 	}
 }
