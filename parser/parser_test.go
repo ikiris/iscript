@@ -72,6 +72,18 @@ func TestParser(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"ExpressionStatement",
+			`foobar;`,
+			&ast.Program{
+				Statements: []ast.Statement{
+					&ast.ExpressionStatement{
+						Token: token.Token{Type: "IDENT", Literal: "foobar"},
+					},
+				},
+			},
+			false,
+		},
 	}
 
 	for _, tt := range tests {
