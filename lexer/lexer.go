@@ -106,20 +106,20 @@ func newToken(tokenType token.TokenType, ch byte) token.Token {
 	return token.Token{Type: tokenType, Literal: string(ch)}
 }
 
-func (l *Lexer) readIdentifier() string {
+func (l *Lexer) readChunk(f func(byte) bool) string {
 	position := l.position
-	for isLetter(l.ch) {
+	for f(l.ch) {
 		l.readChar()
 	}
 	return l.input[position:l.position]
 }
 
+func (l *Lexer) readIdentifier() string {
+	return l.readChunk(isLetter)
+}
+
 func (l *Lexer) readNumber() string {
-	position := l.position
-	for isDigit(l.ch) {
-		l.readChar()
-	}
-	return l.input[position:l.position]
+	return l.readChunk(isDigit)
 }
 
 func isLetter(ch byte) bool {
