@@ -32,6 +32,7 @@ func TestParserStruct(t *testing.T) {
 							Token: token.Token{Type: "IDENT", Literal: "x"},
 							Value: "x",
 						},
+						Value: &ast.IntegerLiteral{Token: token.Token{Type: "INT", Literal: "5"}, Value: 5},
 					},
 					&ast.LetStatement{
 						Token: token.Token{Type: "LET", Literal: "let"},
@@ -39,6 +40,7 @@ func TestParserStruct(t *testing.T) {
 							Token: token.Token{Type: "IDENT", Literal: "y"},
 							Value: "y",
 						},
+						Value: &ast.IntegerLiteral{Token: token.Token{Type: "INT", Literal: "10"}, Value: 10},
 					},
 					&ast.LetStatement{
 						Token: token.Token{Type: "LET", Literal: "let"},
@@ -46,6 +48,7 @@ func TestParserStruct(t *testing.T) {
 							Token: token.Token{Type: "IDENT", Literal: "foobar"},
 							Value: "foobar",
 						},
+						Value: &ast.IntegerLiteral{Token: token.Token{Type: "INT", Literal: "838383"}, Value: 838383},
 					},
 				},
 			},
@@ -61,13 +64,16 @@ func TestParserStruct(t *testing.T) {
 			&ast.Program{
 				Statements: []ast.Statement{
 					&ast.ReturnStatement{
-						Token: token.Token{Type: "RETURN", Literal: "return"},
+						Token:       token.Token{Type: "RETURN", Literal: "return"},
+						ReturnValue: &ast.IntegerLiteral{Token: token.Token{Type: "INT", Literal: "5"}, Value: 5},
 					},
 					&ast.ReturnStatement{
-						Token: token.Token{Type: "RETURN", Literal: "return"},
+						Token:       token.Token{Type: "RETURN", Literal: "return"},
+						ReturnValue: &ast.IntegerLiteral{Token: token.Token{Type: "INT", Literal: "10"}, Value: 10},
 					},
 					&ast.ReturnStatement{
-						Token: token.Token{Type: "RETURN", Literal: "return"},
+						Token:       token.Token{Type: "RETURN", Literal: "return"},
+						ReturnValue: &ast.IntegerLiteral{Token: token.Token{Type: "INT", Literal: "993322"}, Value: 993322},
 					},
 				},
 			},
