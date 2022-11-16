@@ -79,6 +79,26 @@ func TestParser(t *testing.T) {
 				Statements: []ast.Statement{
 					&ast.ExpressionStatement{
 						Token: token.Token{Type: "IDENT", Literal: "foobar"},
+						Expression: &ast.Identifier{
+							Token: token.Token{Type: "IDENT", Literal: "foobar"},
+							Value: "foobar",
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"integer literal",
+			`5;`,
+			&ast.Program{
+				Statements: []ast.Statement{
+					&ast.ExpressionStatement{
+						Token: token.Token{Type: "INT", Literal: "5"},
+						Expression: &ast.IntegerLiteral{
+							Token: token.Token{Type: "INT", Literal: "5"},
+							Value: 5,
+						},
 					},
 				},
 			},
