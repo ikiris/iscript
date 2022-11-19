@@ -15,11 +15,11 @@ func Eval(node ast.Node) object.Object {
 	switch node := node.(type) {
 	//Statements
 	case *ast.Program:
-		return evalStatements(node.Statements)
+		return evalProgram(node)
 	case *ast.ExpressionStatement:
 		return Eval(node.Expression)
 	case *ast.BlockStatement:
-		return evalStatements(node.Statements)
+		return evalBlockStatement(node)
 	case *ast.ReturnStatement:
 		val := Eval(node.ReturnValue)
 		return &object.ReturnValue{Value: val}
@@ -50,17 +50,30 @@ func nativeBoolToObj(input bool) *object.Boolean {
 	return FALSE
 }
 
-func evalStatements(stmts []ast.Statement) object.Object {
+func evalProgram(p *ast.Program) object.Object {
 	var res object.Object
 
-	for _, stmt := range stmts {
+	for _, stmt := range p.Statements {
 		res = Eval(stmt)
 
-		if res, ok := res.(*object.ReturnValue); ok {
-			return res.Value
+		if ret, ok := res.(*object.ReturnValue); ok {
+			return ret.Value
 		}
 	}
 
+	return res
+}
+
+func evalBlockStatement(block *ast.BlockStatement) object.Object {
+	var res object.Object
+
+	for _, stmt := range block.Statements {
+		res = Eval(stmt)
+
+		if res != nil && res.Type() == object.RETURN_VALUE_OBJ {
+			return res
+		}
+	}
 	return res
 }
 
