@@ -6,6 +6,7 @@ import (
 	"io"
 	"iscript/evaluator"
 	"iscript/lexer"
+	"iscript/object"
 	"iscript/parser"
 )
 
@@ -13,6 +14,7 @@ const PROMPT = ">> "
 
 func Start(in io.Reader, out io.Writer) {
 	s := bufio.NewScanner(in)
+	env := object.NewEnvironment()
 
 	for {
 		fmt.Fprint(out, PROMPT)
@@ -31,7 +33,7 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		evald := evaluator.Eval(prog)
+		evald := evaluator.Eval(prog, env)
 		if evald != nil {
 			io.WriteString(out, evald.Inspect())
 			io.WriteString(out, "\n")
