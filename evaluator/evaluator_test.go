@@ -218,3 +218,56 @@ func TestLetStatement(t *testing.T) {
 		testIntegerObject(t, testEval(t, tt.input), tt.want)
 	}
 }
+
+func TestFunctionObject(t *testing.T) {
+	input := "fn(x) { x + 2; }"
+
+	got := testEval(t, input)
+	fn, ok := got.(*object.Function)
+	if !ok {
+		t.Fatalf("object is not Function. got=%T (%+v)", got, got)
+	}
+
+	if len(fn.Parameters) != 1 {
+		t.Fatalf("func has incorrect params. got=%+v", fn.Parameters)
+	}
+
+	if fn.Parameters[0].String() != "x" {
+		t.Fatalf("paramater is not 'x'. got=%s", fn.Parameters[0])
+	}
+
+	wantBody := "(x + 2)"
+	if fn.Body.String() != wantBody {
+		t.Fatalf("body is not %q. got=%q", wantBody, fn.Body)
+	}
+}
+
+func TestFuncApplication(t *testing.T) {
+	tests := []struct {
+		input string
+		want  int64
+	}{
+		{"let identity = fn(x) { x; }; identity(5);", 5},
+		{"let identity = fn(x) { return x; }; identity(5);", 5},
+		{"let double = fn(x) { x * 2; }; double(5);", 10},
+		{"let add = fn(x, y) { x + y }; add(5,5);", 10},
+		{"let add = fn(x, y) { x + y }; add(5+5,add(5,5));", 20},
+		{"fn(x, y) { x; }; (5);", 5},
+	}
+
+	for _, tt := range tests {
+		testIntegerObject(t, testEval(t, tt.input), tt.want)
+	}
+}
+
+func TestClosure(t *testing.T) {
+	input := `
+let newAdder = fn(x) {
+	fn(y) {x + y};
+};
+
+let addTwo = newAdder(2);
+addTwo(2);`
+
+	testIntegerObject(t, testEval(t, input), 4)
+}
