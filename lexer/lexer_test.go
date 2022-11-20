@@ -34,6 +34,7 @@ func TestNextToken(t *testing.T) {
 	10 != 9;
 	"foobar";
 	"foo bar";
+	[1, 2];
 	`
 
 	tests := []toks{
@@ -113,6 +114,12 @@ func TestNextToken(t *testing.T) {
 		{token.STRING, "foobar"},
 		{token.SEMICOLON, ";"},
 		{token.STRING, "foo bar"},
+		{token.SEMICOLON, ";"},
+		{token.LBRACKET, "["},
+		{token.INT, "1"},
+		{token.COMMA, ","},
+		{token.INT, "2"},
+		{token.RBRACKET, "]"},
 		{token.SEMICOLON, ";"},
 		{token.EOF, ""},
 	}

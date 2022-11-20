@@ -331,3 +331,43 @@ func TestBuiltIn(t *testing.T) {
 		}
 	}
 }
+
+func TestArrayLiterals(t *testing.T) {
+	input := "[1, 2 * 2, 3 + 3]"
+
+	got := testEval(t, input)
+	res, ok := got.(*object.Array)
+	if !ok {
+		t.Fatalf("object is not Array. got=%T (%+v)", got, got)
+	}
+
+	if len(res.Elements) != 3 {
+		t.Fatalf("array has wrong number of elements. got=%d", len(res.Elements))
+	}
+
+	testIntegerObject(t, res.Elements[0], 1)
+	testIntegerObject(t, res.Elements[1], 4)
+	testIntegerObject(t, res.Elements[2], 6)
+}
+
+func TestArrayIndexExpressions(t *testing.T) {
+	tests := []struct {
+		input string
+		want  interface{}
+	}{
+		{"[1, 2, 3][0]", 1},
+		{"[1, 2, 3][1]", 2},
+		{"[1, 2, 3][2]", 3},
+		{"[1, 2, 3][3]", nil},
+	}
+
+	for _, tt := range tests {
+		got := testEval(t, tt.input)
+		intg, ok := tt.want.(int)
+		if ok {
+			testIntegerObject(t, got, int64(intg))
+		} else {
+			testNullObj(t, got)
+		}
+	}
+}
