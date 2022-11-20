@@ -154,6 +154,16 @@ func evalMinusPrefixOpExp(right object.Object) object.Object {
 	return &object.Integer{Value: -value}
 }
 
+func evalStringInfixExpression(op string, left, right object.Object) object.Object {
+	if op != "+" {
+		return newError("unknown operator: %s %s %s", left.Type(), op, right.Type())
+	}
+
+	leftVal := left.(*object.String).Value
+	rightVal := right.(*object.String).Value
+	return &object.String{Value: leftVal + rightVal}
+}
+
 func evalInfixExpression(op string, left, right object.Object) object.Object {
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
@@ -162,6 +172,8 @@ func evalInfixExpression(op string, left, right object.Object) object.Object {
 		return nativeBoolToObj(left == right)
 	case op == "!=":
 		return nativeBoolToObj(left != right)
+	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
+		return evalStringInfixExpression(op, left, right)
 	case left.Type() != right.Type():
 		return newError("type mismatch: %s %s %s", left.Type(), op, right.Type())
 	default:
