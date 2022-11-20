@@ -300,3 +300,34 @@ func TestStringConcat(t *testing.T) {
 		t.Errorf("string has wrong value. got=%s", str.Value)
 	}
 }
+
+func TestBuiltIn(t *testing.T) {
+	tests := []struct {
+		input string
+		want  interface{}
+	}{
+		{`len("")`, 0},
+		{`len("four")`, 4},
+		{`len("hello world")`, 11},
+		{`len(1)`, "argument to `len` not supported, got INTEGER"},
+		{`len("one", "two")`, "wrong number of arguments. got=2, want=1"},
+	}
+
+	for _, tt := range tests {
+		got := testEval(t, tt.input)
+
+		switch want := tt.want.(type) {
+		case int:
+			testIntegerObject(t, got, int64(want))
+		case string:
+			errObj, ok := got.(*object.Error)
+			if !ok {
+				t.Errorf("object is not Error. got=%T (%+v)", got, got)
+				continue
+			}
+			if errObj.Message != want {
+				t.Errorf("wrong error message. got=%q, want=%q", got, want)
+			}
+		}
+	}
+}
