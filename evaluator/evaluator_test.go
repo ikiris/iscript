@@ -187,6 +187,7 @@ func TestErrorHandling(t *testing.T) {
 		{"if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN"},
 		{"foobar", "identifier not found: foobar"},
 		{`"Hello" - "World"`, "unknown operator: STRING - STRING"},
+		{`{"name": "Monkey"}[fn(x) { x }];`, "unusable as hash key: FUNCTION"},
 	}
 
 	for _, tt := range tests {
@@ -359,6 +360,92 @@ func TestArrayIndexExpressions(t *testing.T) {
 		{"[1, 2, 3][1]", 2},
 		{"[1, 2, 3][2]", 3},
 		{"[1, 2, 3][3]", nil},
+	}
+
+	for _, tt := range tests {
+		got := testEval(t, tt.input)
+		intg, ok := tt.want.(int)
+		if ok {
+			testIntegerObject(t, got, int64(intg))
+		} else {
+			testNullObj(t, got)
+		}
+	}
+}
+
+func TestHashLiteral(t *testing.T) {
+	input := `let two = "two";
+	{
+		"one": 10 - 9,
+		two: 1 + 1,
+		"thr" + "ee": 6 / 2,
+		4: 4,
+		true: 5,
+		false: 6
+	}`
+
+	got := testEval(t, input)
+	result, ok := got.(*object.Hash)
+	if !ok {
+		t.Fatalf("Eval didn't return hash. got=%T (%+v)", got, got)
+	}
+
+	want := map[object.HashKey]int64{
+		(&object.String{Value: "one"}).HashKey():   1,
+		(&object.String{Value: "two"}).HashKey():   2,
+		(&object.String{Value: "three"}).HashKey(): 3,
+		(&object.Integer{Value: 4}).HashKey():      4,
+		TRUE.HashKey():                             5,
+		FALSE.HashKey():                            6,
+	}
+
+	if len(result.Pairs) != len(want) {
+		t.Fatalf("pair count wrong. got=%d", len(result.Pairs))
+	}
+
+	for expectK, expectV := range want {
+		pair, ok := result.Pairs[expectK]
+		if !ok {
+			t.Errorf("no pair for key")
+		}
+
+		testIntegerObject(t, pair.Value, expectV)
+	}
+}
+
+func TestHashIndex(t *testing.T) {
+	tests := []struct {
+		input string
+		want  interface{}
+	}{
+		{
+			`{"foo": 5}["foo"]`,
+			5,
+		},
+		{
+			`{"foo": 5}["bar"]`,
+			nil,
+		},
+		{
+			`let key = "foo"; {"foo": 5}[key]`,
+			5,
+		},
+		{
+			`{}["foo"]`,
+			nil,
+		},
+		{
+			`{5: 5}[5]`,
+			5,
+		},
+		{
+			`{true: 5}[true]`,
+			5,
+		},
+		{
+			`{false: 5}[false]`,
+			5,
+		},
 	}
 
 	for _, tt := range tests {

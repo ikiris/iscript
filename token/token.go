@@ -32,6 +32,7 @@ const (
 
 	// Delims
 	COMMA     = "."
+	COLON     = ":"
 	SEMICOLON = ";"
 
 	LPAREN   = "("
