@@ -24,6 +24,8 @@ const (
 	OpGreaterThan
 	OpMinus
 	OpBang
+	OpJmp
+	OpJNT
 )
 
 var definitions = map[Opcode]*Definition{
@@ -40,6 +42,8 @@ var definitions = map[Opcode]*Definition{
 	OpGreaterThan: {"OpGreaterThan", []int{}},
 	OpMinus:       {"OpMinus", []int{}},
 	OpBang:        {"OpMinus", []int{}},
+	OpJmp:         {"OpJmp", []int{2}},
+	OpJNT:         {"OpJNT", []int{2}},
 }
 
 type Definition struct {
