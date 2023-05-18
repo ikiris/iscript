@@ -26,6 +26,7 @@ const (
 	OpBang
 	OpJmp
 	OpJNT
+	OpNull
 )
 
 var definitions = map[Opcode]*Definition{
@@ -44,6 +45,7 @@ var definitions = map[Opcode]*Definition{
 	OpBang:        {"OpMinus", []int{}},
 	OpJmp:         {"OpJmp", []int{2}},
 	OpJNT:         {"OpJNT", []int{2}},
+	OpNull:        {"OpNull", []int{}},
 }
 
 type Definition struct {

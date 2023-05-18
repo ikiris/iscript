@@ -114,7 +114,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 
 		// Jump Not Truthy with bogus
-		jPos := c.emit(code.OpJNT, 9999)
+		jntPos := c.emit(code.OpJNT, 9999)
 		err = c.Compile(node.Consequence)
 		if err != nil {
 			return err
@@ -123,15 +123,14 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.removeLastPop()
 		}
 
+		jmpPos := c.emit(code.OpJmp, 9999)
+
+		afterConsequencePos := len(c.instructions)
+		c.changeOperand(jntPos, afterConsequencePos)
+
 		if node.Alternative == nil {
-			afterConsequencePos := len(c.instructions)
-			c.changeOperand(jPos, afterConsequencePos)
+			c.emit(code.OpNull)
 		} else {
-			jmpPos := c.emit(code.OpJmp, 9999)
-
-			afterConsequencePos := len(c.instructions)
-			c.changeOperand(jPos, afterConsequencePos)
-
 			err = c.Compile(node.Alternative)
 			if err != nil {
 				return err
@@ -140,10 +139,9 @@ func (c *Compiler) Compile(node ast.Node) error {
 			if c.lastInstructionIsPop() {
 				c.removeLastPop()
 			}
-
-			afterAlternatePos := len(c.instructions)
-			c.changeOperand(jmpPos, afterAlternatePos)
 		}
+		afterAltenrativePos := len(c.instructions)
+		c.changeOperand(jmpPos, afterAltenrativePos)
 	case *ast.BlockStatement:
 		for _, s := range node.Statements {
 			err := c.Compile(s)
