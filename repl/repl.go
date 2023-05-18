@@ -4,17 +4,16 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"iscript/evaluator"
+	"iscript/compiler"
 	"iscript/lexer"
-	"iscript/object"
 	"iscript/parser"
+	"iscript/vm"
 )
 
 const PROMPT = ">> "
 
 func Start(in io.Reader, out io.Writer) {
 	s := bufio.NewScanner(in)
-	env := object.NewEnvironment()
 
 	for {
 		fmt.Fprint(out, PROMPT)
@@ -33,10 +32,22 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		evald := evaluator.Eval(prog, env)
-		if evald != nil {
-			io.WriteString(out, evald.Inspect())
-			io.WriteString(out, "\n")
+		c := compiler.New()
+		err = c.Compile(prog)
+		if err != nil {
+			fmt.Fprintf(out, "Whoops!: Compile failed:\n %s\n", err)
+			continue
 		}
+
+		machine := vm.New(c.Bytecode())
+		err = machine.Run()
+		if err != nil {
+			fmt.Fprintf(out, "Whoops!: Bytecode excecution failed:\n %s\n", err)
+			continue
+		}
+
+		lastPop := machine.LastPoppedStackElem()
+		io.WriteString(out, lastPop.Inspect())
+		io.WriteString(out, "\n")
 	}
 }
