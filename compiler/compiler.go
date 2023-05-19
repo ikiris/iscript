@@ -174,13 +174,21 @@ func (c *Compiler) Compile(node ast.Node) error {
 			return err
 		}
 		sym := c.symTable.Define(node.Name.Value)
-		c.emit(code.OpSetGlobal, sym.Index)
+		scp := code.OpSetLocal
+		if sym.Scope == GlobalScope {
+			scp = code.OpSetGlobal
+		}
+		c.emit(scp, sym.Index)
 	case *ast.Identifier:
 		sym, ok := c.symTable.Resolve(node.Value)
 		if !ok {
 			return fmt.Errorf("undefined variable: %s", node.Value)
 		}
-		c.emit(code.OpGetGlobal, sym.Index)
+		scp := code.OpGetLocal
+		if sym.Scope == GlobalScope {
+			scp = code.OpGetGlobal
+		}
+		c.emit(scp, sym.Index)
 	case *ast.StringLiteral:
 		str := &object.String{Value: node.Value}
 		c.emit(code.OpConstant, c.addConstant(str))
@@ -238,9 +246,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpReturn)
 		}
 
+		numLocals := c.symTable.numDefinitions
 		instructions := c.leaveScope()
 
-		compiledFn := &object.CompiledFunc{Instructions: instructions}
+		compiledFn := &object.CompiledFunc{Instructions: instructions, NumLocals: numLocals}
 		c.emit(code.OpConstant, c.addConstant(compiledFn))
 	case *ast.ReturnStatement:
 		err := c.Compile(node.ReturnValue)
@@ -346,6 +355,7 @@ func (c *Compiler) enterScope() {
 	}
 	c.scopes = append(c.scopes, scope)
 	c.scopeIndex++
+	c.symTable = NewEnclosedSymTable(c.symTable)
 }
 
 func (c *Compiler) leaveScope() code.Instructions {
@@ -353,6 +363,7 @@ func (c *Compiler) leaveScope() code.Instructions {
 	c.scopes = c.scopes[:len(c.scopes)-1]
 	c.scopeIndex--
 
+	c.symTable = c.symTable.Outer
 	return instructions
 }
 

@@ -8,6 +8,10 @@ func TestDefine(t *testing.T) {
 	expected := map[string]Sym{
 		"a": {Name: "a", Scope: GlobalScope, Index: 0},
 		"b": {Name: "b", Scope: GlobalScope, Index: 1},
+		"c": {Name: "c", Scope: LocalScope, Index: 0},
+		"d": {Name: "d", Scope: LocalScope, Index: 1},
+		"e": {Name: "e", Scope: LocalScope, Index: 0},
+		"f": {Name: "f", Scope: LocalScope, Index: 1},
 	}
 
 	global := NewSymTable()
@@ -21,6 +25,30 @@ func TestDefine(t *testing.T) {
 	if b != expected["b"] {
 		t.Errorf("expected b=%+v, got=%+v", expected["b"], b)
 	}
+
+	firstLocal := NewEnclosedSymTable(global)
+
+	c := firstLocal.Define("c")
+	if c != expected["c"] {
+		t.Errorf("expected c=%+v, got=%+v", expected["c"], c)
+	}
+
+	d := firstLocal.Define("d")
+	if d != expected["d"] {
+		t.Errorf("expected d=%+v, got=%+v", expected["d"], d)
+	}
+
+	secondLocal := NewEnclosedSymTable(firstLocal)
+	e := secondLocal.Define("e")
+	if e != expected["e"] {
+		t.Errorf("expected e=%+v, got=%+v", expected["e"], e)
+	}
+
+	f := secondLocal.Define("f")
+	if f != expected["f"] {
+		t.Errorf("expected f=%+v, got=%+v", expected["f"], d)
+	}
+
 }
 
 func TestResolveGlobal(t *testing.T) {
@@ -41,6 +69,81 @@ func TestResolveGlobal(t *testing.T) {
 		}
 		if result != sym {
 			t.Errorf("expected %s to resolve to %+v, got %+v", sym.Name, sym, result)
+		}
+	}
+}
+
+func TestResolveLocal(t *testing.T) {
+	global := NewSymTable()
+	global.Define("a")
+	global.Define("b")
+
+	local := NewEnclosedSymTable(global)
+	local.Define("c")
+	local.Define("d")
+
+	expected := []Sym{
+		{Name: "a", Scope: GlobalScope, Index: 0},
+		{Name: "b", Scope: GlobalScope, Index: 1},
+		{Name: "c", Scope: LocalScope, Index: 0},
+		{Name: "d", Scope: LocalScope, Index: 1},
+	}
+
+	for _, sym := range expected {
+		result, ok := local.Resolve(sym.Name)
+		if !ok {
+			t.Errorf("name %s is not resolvable.", sym.Name)
+		}
+
+		if result != sym {
+			t.Errorf("expected %s to resolve to %+v, got=%+v", sym.Name, sym, result)
+		}
+	}
+}
+
+func TestResolveNestedLocal(t *testing.T) {
+	global := NewSymTable()
+	global.Define("a")
+	global.Define("b")
+
+	local := NewEnclosedSymTable(global)
+	local.Define("c")
+	local.Define("d")
+
+	secondLocal := NewEnclosedSymTable(local)
+	secondLocal.Define("e")
+	secondLocal.Define("f")
+
+	tests := []struct {
+		table        *SymTable
+		expectedSyms []Sym
+	}{
+		{local,
+			[]Sym{
+				{Name: "a", Scope: GlobalScope, Index: 0},
+				{Name: "b", Scope: GlobalScope, Index: 1},
+				{Name: "c", Scope: LocalScope, Index: 0},
+				{Name: "d", Scope: LocalScope, Index: 1},
+			}},
+		{secondLocal,
+			[]Sym{
+				{Name: "a", Scope: GlobalScope, Index: 0},
+				{Name: "b", Scope: GlobalScope, Index: 1},
+				{Name: "e", Scope: LocalScope, Index: 0},
+				{Name: "f", Scope: LocalScope, Index: 1},
+			}},
+	}
+
+	for _, tt := range tests {
+		for _, sym := range tt.expectedSyms {
+			result, ok := tt.table.Resolve(sym.Name)
+			if !ok {
+				t.Errorf("name %s is not resolvable.", sym.Name)
+			}
+
+			if result != sym {
+				t.Errorf("expected %s to resolve to %+v, got=%+v", sym.Name, sym, result)
+			}
 		}
 	}
 }

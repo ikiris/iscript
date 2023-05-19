@@ -605,6 +605,7 @@ func scopeInsTestHelper(t *testing.T, c *Compiler, op code.Opcode) {
 func TestCompilerScopes(t *testing.T) {
 	compiler := New()
 	scopeIndexHelper(t, compiler, 0)
+	globalSymTable := compiler.symTable
 
 	compiler.emit(code.OpMul)
 
@@ -616,8 +617,18 @@ func TestCompilerScopes(t *testing.T) {
 
 	scopeInsTestHelper(t, compiler, code.OpSub)
 
+	if compiler.symTable.Outer != globalSymTable {
+		t.Errorf("compiler did not enclose symTable.")
+	}
+
 	compiler.leaveScope()
 	scopeIndexHelper(t, compiler, 0)
+	if compiler.symTable != globalSymTable {
+		t.Errorf("compiler did not restore global symTable")
+	}
+	if compiler.symTable.Outer != nil {
+		t.Errorf("compiler modified global symTable incorrectly.")
+	}
 
 	compiler.emit(code.OpAdd)
 	scopeInsLenHelper(t, compiler, 2)
@@ -680,6 +691,60 @@ func TestFunctionCalls(t *testing.T) {
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpGetGlobal, 0),
 				code.Make(code.OpCall),
+				code.Make(code.OpPop),
+			},
+		},
+	}
+	runCompilerTests(t, tests)
+}
+
+func TestLetStatementScopes(t *testing.T) {
+	tests := []compilerTestCase{
+		{
+			input: `
+			fn() {
+				let num = 55;
+				num
+			}
+			`,
+			expectedConstants: []interface{}{
+				55,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpSetLocal, 0),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpRetVal),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `
+			fn() {
+				let a = 55;
+				let b = 77;
+				a + b
+			}
+			`,
+			expectedConstants: []interface{}{
+				55,
+				77,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpSetLocal, 0),
+					code.Make(code.OpConstant, 1),
+					code.Make(code.OpSetLocal, 1),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpGetLocal, 1),
+					code.Make(code.OpAdd),
+					code.Make(code.OpRetVal),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 2),
 				code.Make(code.OpPop),
 			},
 		},
