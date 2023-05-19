@@ -6,6 +6,7 @@ import (
 	"io"
 	"iscript/compiler"
 	"iscript/lexer"
+	"iscript/object"
 	"iscript/parser"
 	"iscript/vm"
 )
@@ -14,6 +15,10 @@ const PROMPT = ">> "
 
 func Start(in io.Reader, out io.Writer) {
 	s := bufio.NewScanner(in)
+
+	constants := []object.Object{}
+	globals := make([]object.Object, vm.GlobalSize)
+	symbolTable := compiler.NewSymbolTable()
 
 	for {
 		fmt.Fprint(out, PROMPT)
@@ -32,14 +37,17 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		c := compiler.New()
+		c := compiler.NewWithState(symbolTable, constants)
 		err = c.Compile(prog)
 		if err != nil {
 			fmt.Fprintf(out, "Whoops!: Compile failed:\n %s\n", err)
 			continue
 		}
 
-		machine := vm.New(c.Bytecode())
+		code := c.Bytecode()
+		constants = code.Constants
+
+		machine := vm.NewWithGlobalsStore(code, globals)
 		err = machine.Run()
 		if err != nil {
 			fmt.Fprintf(out, "Whoops!: Bytecode excecution failed:\n %s\n", err)

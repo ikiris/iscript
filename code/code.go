@@ -27,6 +27,8 @@ const (
 	OpJmp
 	OpJNT
 	OpNull
+	OpGetGlobal
+	OpSetGlobal
 )
 
 var definitions = map[Opcode]*Definition{
@@ -46,6 +48,8 @@ var definitions = map[Opcode]*Definition{
 	OpJmp:         {"OpJmp", []int{2}},
 	OpJNT:         {"OpJNT", []int{2}},
 	OpNull:        {"OpNull", []int{}},
+	OpGetGlobal:   {"OpGetGlobal", []int{2}},
+	OpSetGlobal:   {"OpSetGlobal", []int{2}},
 }
 
 type Definition struct {
