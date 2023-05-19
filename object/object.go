@@ -5,22 +5,24 @@ import (
 	"fmt"
 	"hash/fnv"
 	"iscript/ast"
+	"iscript/code"
 	"strings"
 )
 
 type ObjectType string
 
 const (
-	INTEGER_OBJ      = "INTEGER"
-	BOOLEAN_OBJ      = "BOOLEAN"
-	NULL_OBJ         = "NULL"
-	RETURN_VALUE_OBJ = "RETURN_VALUE"
-	ERROR_OBJ        = "ERROR"
-	FUNCTION_OBJ     = "FUNCTION"
-	STRING_OBJ       = "STRING"
-	BUILTIN_OBJ      = "BUILTIN"
-	ARRAY_OBJ        = "ARRAY"
-	HASH_OBJ         = "HASH"
+	INTEGER_OBJ       = "INTEGER"
+	BOOLEAN_OBJ       = "BOOLEAN"
+	NULL_OBJ          = "NULL"
+	RETURN_VALUE_OBJ  = "RETURN_VALUE"
+	ERROR_OBJ         = "ERROR"
+	FUNCTION_OBJ      = "FUNCTION"
+	STRING_OBJ        = "STRING"
+	BUILTIN_OBJ       = "BUILTIN"
+	ARRAY_OBJ         = "ARRAY"
+	HASH_OBJ          = "HASH"
+	COMPILED_FUNC_OBJ = "COMPILED_FUNC_OBJ"
 )
 
 type Object interface {
@@ -176,4 +178,13 @@ func (h *Hash) Inspect() string {
 
 type Hashable interface {
 	HashKey() HashKey
+}
+
+type CompiledFunc struct {
+	Instructions code.Instructions
+}
+
+func (cf *CompiledFunc) Type() ObjectType { return COMPILED_FUNC_OBJ }
+func (cf *CompiledFunc) Inspect() string {
+	return fmt.Sprintf("CompiledFunction[%p]", cf)
 }

@@ -164,6 +164,15 @@ func testConstants(
 			if err != nil {
 				return fmt.Errorf("constant %d - testStringObj failed: %s", i, err)
 			}
+		case []code.Instructions:
+			fn, ok := actual[i].(*object.CompiledFunc)
+			if !ok {
+				return fmt.Errorf("constant %d - not a fn: %T", i, actual[i])
+			}
+			err := testInstructions(constant, fn.Instructions)
+			if err != nil {
+				return fmt.Errorf("constant %d - testInstructions failed: %s", i, err)
+			}
 		}
 	}
 	return nil
@@ -509,6 +518,128 @@ func TestIndexExpressions(t *testing.T) {
 				code.Make(code.OpConstant, 3),
 				code.Make(code.OpSub),
 				code.Make(code.OpIndex),
+				code.Make(code.OpPop),
+			},
+		},
+	}
+	runCompilerTests(t, tests)
+}
+
+func TestFunctions(t *testing.T) {
+	tests := []compilerTestCase{
+		{
+			input: `fn() { return 5 + 10 }`,
+			expectedConstants: []interface{}{
+				5,
+				10,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpConstant, 1),
+					code.Make(code.OpAdd),
+					code.Make(code.OpRetVal),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `fn() { 5 + 10 }`,
+			expectedConstants: []interface{}{
+				5,
+				10,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpConstant, 1),
+					code.Make(code.OpAdd),
+					code.Make(code.OpRetVal),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `fn() { 1; 2 }`,
+			expectedConstants: []interface{}{
+				1,
+				2,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpPop),
+					code.Make(code.OpConstant, 1),
+					code.Make(code.OpRetVal),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpPop),
+			},
+		},
+	}
+	runCompilerTests(t, tests)
+}
+
+func scopeIndexHelper(t *testing.T, c *Compiler, wantIdx int) {
+	t.Helper()
+	if c.scopeIndex != wantIdx {
+		t.Errorf("scopeIndex wrong. got=%d, want=%d", c.scopeIndex, wantIdx)
+	}
+}
+
+func scopeInsLenHelper(t *testing.T, c *Compiler, cnt int) {
+	if len(c.scopes[c.scopeIndex].instructions) != cnt {
+		t.Errorf("instructions length wrong. got=%d, want=%d", len(c.scopes[c.scopeIndex].instructions), cnt)
+	}
+}
+
+func scopeInsTestHelper(t *testing.T, c *Compiler, op code.Opcode) {
+	last := c.scopes[c.scopeIndex].lastInstruction
+	if last.Opcode != op {
+		t.Errorf("lastInstruction Opcode wrong. got=%d, want=%d", last.Opcode, op)
+	}
+}
+
+func TestCompilerScopes(t *testing.T) {
+	compiler := New()
+	scopeIndexHelper(t, compiler, 0)
+
+	compiler.emit(code.OpMul)
+
+	compiler.enterScope()
+	scopeIndexHelper(t, compiler, 1)
+
+	compiler.emit(code.OpSub)
+	scopeInsLenHelper(t, compiler, 1)
+
+	scopeInsTestHelper(t, compiler, code.OpSub)
+
+	compiler.leaveScope()
+	scopeIndexHelper(t, compiler, 0)
+
+	compiler.emit(code.OpAdd)
+	scopeInsLenHelper(t, compiler, 2)
+	scopeInsTestHelper(t, compiler, code.OpAdd)
+
+	previous := compiler.scopes[compiler.scopeIndex].previousInstruction
+	if previous.Opcode != code.OpMul {
+		t.Errorf("previous instruction.Opcode wrong. got=%d, want=%d", previous.Opcode, code.OpMul)
+	}
+}
+
+func TestFunctionsWithoutRetVal(t *testing.T) {
+	tests := []compilerTestCase{
+		{
+			input: `fn() {}`,
+			expectedConstants: []interface{}{
+				[]code.Instructions{
+					code.Make(code.OpReturn),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
 				code.Make(code.OpPop),
 			},
 		},
