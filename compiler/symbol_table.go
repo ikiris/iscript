@@ -1,35 +1,35 @@
 package compiler
 
-type SymbolScope string
+type SymScope string
 
 const (
-	GlobalScope SymbolScope = "GLOBAL"
+	GlobalScope SymScope = "GLOBAL"
 )
 
-type Symbol struct {
+type Sym struct {
 	Name  string
-	Scope SymbolScope
+	Scope SymScope
 	Index int
 }
 
-type SymbolTable struct {
-	store          map[string]Symbol
+type SymTable struct {
+	store          map[string]Sym
 	numDefinitions int
 }
 
-func NewSymbolTable() *SymbolTable {
-	s := make(map[string]Symbol)
-	return &SymbolTable{store: s}
+func NewSymTable() *SymTable {
+	s := make(map[string]Sym)
+	return &SymTable{store: s}
 }
 
-func (s *SymbolTable) Define(name string) Symbol {
-	symbol := Symbol{Name: name, Index: s.numDefinitions, Scope: GlobalScope}
-	s.store[name] = symbol
+func (s *SymTable) Define(name string) Sym {
+	sym := Sym{Name: name, Index: s.numDefinitions, Scope: GlobalScope}
+	s.store[name] = sym
 	s.numDefinitions++
-	return symbol
+	return sym
 }
 
-func (s *SymbolTable) Resolve(name string) (Symbol, bool) {
+func (s *SymTable) Resolve(name string) (Sym, bool) {
 	obj, ok := s.store[name]
 	return obj, ok
 }

@@ -14,7 +14,7 @@ type Compiler struct {
 	lastInstruction     EmittedInstruction
 	previousInstruction EmittedInstruction
 
-	symbolTable *SymbolTable
+	symTable *SymTable
 }
 
 type EmittedInstruction struct {
@@ -22,9 +22,9 @@ type EmittedInstruction struct {
 	Position int
 }
 
-func NewWithState(s *SymbolTable, constants []object.Object) *Compiler {
+func NewWithState(s *SymTable, constants []object.Object) *Compiler {
 	compiler := New()
-	compiler.symbolTable = s
+	compiler.symTable = s
 	compiler.constants = constants
 	return compiler
 }
@@ -37,7 +37,7 @@ func New() *Compiler {
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
 
-		symbolTable: NewSymbolTable(),
+		symTable: NewSymTable(),
 	}
 }
 
@@ -165,14 +165,14 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if err != nil {
 			return err
 		}
-		symbol := c.symbolTable.Define(node.Name.Value)
-		c.emit(code.OpSetGlobal, symbol.Index)
+		sym := c.symTable.Define(node.Name.Value)
+		c.emit(code.OpSetGlobal, sym.Index)
 	case *ast.Identifier:
-		symbol, ok := c.symbolTable.Resolve(node.Value)
+		sym, ok := c.symTable.Resolve(node.Value)
 		if !ok {
 			return fmt.Errorf("undefined variable: %s", node.Value)
 		}
-		c.emit(code.OpGetGlobal, symbol.Index)
+		c.emit(code.OpGetGlobal, sym.Index)
 	}
 	return nil
 }

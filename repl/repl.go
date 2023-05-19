@@ -18,7 +18,7 @@ func Start(in io.Reader, out io.Writer) {
 
 	constants := []object.Object{}
 	globals := make([]object.Object, vm.GlobalSize)
-	symbolTable := compiler.NewSymbolTable()
+	symTable := compiler.NewSymTable()
 
 	for {
 		fmt.Fprint(out, PROMPT)
@@ -37,7 +37,7 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		c := compiler.NewWithState(symbolTable, constants)
+		c := compiler.NewWithState(symTable, constants)
 		err = c.Compile(prog)
 		if err != nil {
 			fmt.Fprintf(out, "Whoops!: Compile failed:\n %s\n", err)
