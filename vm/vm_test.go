@@ -425,3 +425,111 @@ func TestCallingFuncWithBinding(t *testing.T) {
 	}
 	runVmTests(t, tests)
 }
+
+func TestCallingFuncWithArgAndBind(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			input: `
+			let identity = fn(a) { a; };
+			identity(4);
+			`,
+			expected: 4,
+		},
+		{
+			input: `
+			let sum = fn(a, b) { a + b; };
+			sum(1, 2);
+			`,
+			expected: 3,
+		},
+		{
+			input: `
+			let sum = fn(a, b) {
+				let c = a + b;
+				c;
+			};
+			sum(1, 2);
+			`,
+			expected: 3,
+		},
+		{
+			input: `
+			let sum = fn(a, b) {
+				let c = a + b;
+				c;
+			};
+			sum(1, 2) + sum(3,4);
+			`,
+			expected: 10,
+		},
+		{
+			input: `
+			let sum = fn(a, b) {
+				let c = a + b;
+				c;
+			};
+			let outer = fn() {
+				sum(1, 2) + sum(3,4);
+			};
+			outer();
+			`,
+			expected: 10,
+		},
+		{
+			input: `
+			let globalNum = 10;
+
+			let sum = fn(a, b) {
+				let c = a + b;
+				c + globalNum;
+			};
+			
+			let outer = fn() {
+				sum(1,2) + sum(3,4) + globalNum;
+			};
+			outer() + globalNum;
+			`,
+			expected: 50,
+		},
+	}
+	runVmTests(t, tests)
+}
+
+func TestWrongArguments(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			input:    `fn() { 1; }(1);`,
+			expected: "wrong number of args: want=0, got=1",
+		},
+		{
+			input:    `fn(a) { a; }();`,
+			expected: "wrong number of args: want=1, got=0",
+		},
+		{
+			input:    `fn(a, b) { a + b; }(1);`,
+			expected: "wrong number of args: want=2, got=1",
+		},
+	}
+	for _, tt := range tests {
+		prog, err := parse(tt.input)
+		if err != nil {
+			t.Fatalf("parser error: %s", err)
+		}
+
+		comp := compiler.New()
+		err = comp.Compile(prog)
+		if err != nil {
+			t.Fatalf("compile error: %s", err)
+		}
+
+		vm := New(comp.Bytecode())
+		err = vm.Run()
+		if err == nil {
+			t.Fatalf("expected compile error but none.")
+		}
+
+		if err.Error() != tt.expected {
+			t.Fatalf("wrong VM error: want=%q, got=%q", tt.expected, err)
+		}
+	}
+}
