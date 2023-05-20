@@ -28,7 +28,8 @@ type VM struct {
 
 func New(bytecode *compiler.Bytecode) *VM {
 	mainFn := &object.CompiledFunc{Instructions: bytecode.Instructions}
-	mainFrame := NewFrame(mainFn, 0)
+	mainClosure := &object.Closure{Fn: mainFn}
+	mainFrame := NewFrame(mainClosure, 0)
 
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
@@ -221,6 +222,30 @@ func (vm *VM) Run() error {
 			def := object.Builtins[index]
 
 			err := vm.push(def.Builtin)
+			if err != nil {
+				return err
+			}
+		case code.OpClosure:
+			constIdx := code.ReadUint16(ins[ip+1:])
+			numFree := code.ReadUint8(ins[ip+3:])
+			vm.currentFrame().ip += 3
+
+			err := vm.pushClosure(int(constIdx), int(numFree))
+			if err != nil {
+				return err
+			}
+		case code.OpGetFree:
+			idx := code.ReadUint8(ins[ip+1:])
+			vm.currentFrame().ip += 1
+
+			currentClosure := vm.currentFrame().cl
+			err := vm.push(currentClosure.Free[idx])
+			if err != nil {
+				return err
+			}
+		case code.OpCurrentClosure:
+			cur := vm.currentFrame().cl
+			err := vm.push(cur)
 			if err != nil {
 				return err
 			}
@@ -457,15 +482,15 @@ func (vm *VM) popFrame() *Frame {
 	return vm.frames[vm.framesIndex]
 }
 
-func (vm *VM) callFunc(fn *object.CompiledFunc, numArgs int) error {
-	if numArgs != fn.NumParams {
-		return fmt.Errorf("wrong number of args: want=%d, got=%d", fn.NumParams, numArgs)
+func (vm *VM) callClosure(cl *object.Closure, numArgs int) error {
+	if numArgs != cl.Fn.NumParams {
+		return fmt.Errorf("wrong number of args: want=%d, got=%d", cl.Fn.NumParams, numArgs)
 	}
 
-	frame := NewFrame(fn, vm.sp-numArgs)
+	frame := NewFrame(cl, vm.sp-numArgs)
 	vm.pushFrame(frame)
 
-	vm.sp = frame.basePtr + fn.NumLocals
+	vm.sp = frame.basePtr + cl.Fn.NumLocals
 
 	return nil
 }
@@ -473,8 +498,8 @@ func (vm *VM) callFunc(fn *object.CompiledFunc, numArgs int) error {
 func (vm *VM) executeCall(numArgs int) error {
 	callee := vm.stack[vm.sp-1-numArgs]
 	switch callee := callee.(type) {
-	case *object.CompiledFunc:
-		return vm.callFunc(callee, numArgs)
+	case *object.Closure:
+		return vm.callClosure(callee, numArgs)
 	case *object.Builtin:
 		return vm.callBuiltin(callee, numArgs)
 	default:
@@ -495,4 +520,21 @@ func (vm *VM) callBuiltin(builtin *object.Builtin, numArgs int) error {
 	}
 
 	return nil
+}
+
+func (vm *VM) pushClosure(constIdx, numFree int) error {
+	constant := vm.constants[constIdx]
+	fn, ok := constant.(*object.CompiledFunc)
+	if !ok {
+		return fmt.Errorf("not a func: %+v", constant)
+	}
+
+	free := make([]object.Object, numFree)
+	for i := 0; i < numFree; i++ {
+		free[i] = vm.stack[vm.sp-numFree+i]
+	}
+	vm.sp -= numFree
+
+	closure := &object.Closure{Fn: fn, Free: free}
+	return vm.push(closure)
 }

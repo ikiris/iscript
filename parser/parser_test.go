@@ -571,3 +571,32 @@ func TestParseHashLiteralString(t *testing.T) {
 		testIntLiteral(t, value, expectedV)
 	}
 }
+
+func TestFuncLiteralWithName(t *testing.T) {
+	input := `let myFunc = fn() {};`
+
+	l := lexer.New(input)
+	p := New(l)
+	prog, err := p.ParseProgram()
+	if err != nil {
+		t.Fatalf("failed to parse program: err: %v", err)
+	}
+
+	if len(prog.Statements) != 1 {
+		t.Fatalf("prog.Body does not contain %d statements. got=%d\n", 1, len(prog.Statements))
+	}
+
+	stmt, ok := prog.Statements[0].(*ast.LetStatement)
+	if !ok {
+		t.Fatalf("prog.Statements[0] is not ast.LetStatement. got=%T", prog.Statements[0])
+	}
+
+	fn, ok := stmt.Value.(*ast.FunctionLiteral)
+	if !ok {
+		t.Fatalf("stmt.Value is not ast.FunctionLiteral. got=%T", stmt.Value)
+	}
+
+	if fn.Name != "myFunc" {
+		t.Fatalf("function literal name wrong. want 'myFunc', got=%q", fn.Name)
+	}
+}

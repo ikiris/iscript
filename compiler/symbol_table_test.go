@@ -177,3 +177,144 @@ func TestDefineResolveBuiltins(t *testing.T) {
 		}
 	}
 }
+
+func TestResolveFree(t *testing.T) {
+	global := NewSymTable()
+	global.Define("a")
+	global.Define("b")
+
+	firstLocal := NewEnclosedSymTable(global)
+	firstLocal.Define("c")
+	firstLocal.Define("d")
+
+	secondLocal := NewEnclosedSymTable(firstLocal)
+	secondLocal.Define("e")
+	secondLocal.Define("f")
+
+	tests := []struct {
+		table           *SymTable
+		expectedSyms    []Sym
+		expectedFreeSym []Sym
+	}{
+		{
+			firstLocal,
+			[]Sym{
+				{Name: "a", Scope: GlobalScope, Index: 0},
+				{Name: "b", Scope: GlobalScope, Index: 1},
+				{Name: "c", Scope: LocalScope, Index: 0},
+				{Name: "d", Scope: LocalScope, Index: 1},
+			},
+			[]Sym{},
+		},
+		{
+			secondLocal,
+			[]Sym{
+				{Name: "a", Scope: GlobalScope, Index: 0},
+				{Name: "b", Scope: GlobalScope, Index: 1},
+				{Name: "c", Scope: FreeScope, Index: 0},
+				{Name: "d", Scope: FreeScope, Index: 1},
+				{Name: "e", Scope: LocalScope, Index: 0},
+				{Name: "f", Scope: LocalScope, Index: 1},
+			},
+			[]Sym{
+				{Name: "c", Scope: LocalScope, Index: 0},
+				{Name: "d", Scope: LocalScope, Index: 1},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		for _, sym := range tt.expectedSyms {
+			result, ok := tt.table.Resolve(sym.Name)
+			if !ok {
+				t.Errorf("name %s not resolvable", sym.Name)
+				continue
+			}
+			if result != sym {
+				t.Errorf("expected %s to resolve to %+v, got=%+v", sym.Name, sym, result)
+			}
+		}
+		if len(tt.table.FreeSyms) != len(tt.expectedFreeSym) {
+			t.Errorf("wrong number of free symbols: got=%d, want=%d", len(tt.table.FreeSyms), len(tt.expectedFreeSym))
+			continue
+		}
+		for i, sym := range tt.expectedFreeSym {
+			result := tt.table.FreeSyms[i]
+			if result != sym {
+				t.Errorf("wrong free symbol: got=%+v, want=%+v", result, sym)
+			}
+		}
+	}
+}
+
+func TestResolveUnresolvableFree(t *testing.T) {
+	global := NewSymTable()
+	global.Define("a")
+
+	firstLocal := NewEnclosedSymTable(global)
+	firstLocal.Define("c")
+
+	secondLocal := NewEnclosedSymTable(firstLocal)
+	secondLocal.Define("e")
+	secondLocal.Define("f")
+
+	expected := []Sym{
+		{Name: "a", Scope: GlobalScope, Index: 0},
+		{Name: "c", Scope: FreeScope, Index: 0},
+		{Name: "e", Scope: LocalScope, Index: 0},
+		{Name: "f", Scope: LocalScope, Index: 1},
+	}
+
+	for _, sym := range expected {
+		result, ok := secondLocal.Resolve(sym.Name)
+		if !ok {
+			t.Errorf("name %s is not resolvable", sym.Name)
+			continue
+		}
+		if result != sym {
+			t.Errorf("expected %s to resolve to %+v, got=%+v", sym.Name, sym, result)
+		}
+	}
+
+	expectedUnresolvable := []string{"b", "d"}
+
+	for _, name := range expectedUnresolvable {
+		_, ok := secondLocal.Resolve(name)
+		if ok {
+			t.Errorf("name %s resolved, but was expected not to", name)
+		}
+	}
+}
+
+func TestDefineResolveFuncName(t *testing.T) {
+	global := NewSymTable()
+	global.DefineFunctionName("a")
+
+	expected := Sym{Name: "a", Scope: FunctionScope, Index: 0}
+
+	res, ok := global.Resolve(expected.Name)
+	if !ok {
+		t.Fatalf("func name %s not resolvable.", expected.Name)
+	}
+
+	if res != expected {
+		t.Errorf("expected %s to resolve to %+v, got=%+v", expected.Name, expected, res)
+	}
+}
+
+func TestShadowingFuncName(t *testing.T) {
+	global := NewSymTable()
+	global.DefineFunctionName("a")
+	global.Define("a")
+
+	expected := Sym{Name: "a", Scope: GlobalScope, Index: 0}
+
+	res, ok := global.Resolve(expected.Name)
+	if !ok {
+		t.Fatalf("func name %s not resolvable.", expected.Name)
+	}
+
+	if res != expected {
+		t.Errorf("expected %s to resolve to %+v, got=%+v", expected.Name, expected, res)
+	}
+}

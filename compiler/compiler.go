@@ -176,11 +176,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 			}
 		}
 	case *ast.LetStatement:
+		sym := c.symTable.Define(node.Name.Value)
 		err := c.Compile(node.Value)
 		if err != nil {
 			return err
 		}
-		sym := c.symTable.Define(node.Name.Value)
 		scp := code.OpSetLocal
 		if sym.Scope == GlobalScope {
 			scp = code.OpSetGlobal
@@ -236,6 +236,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 	case *ast.FunctionLiteral:
 		c.enterScope()
 
+		if node.Name != "" {
+			c.symTable.DefineFunctionName(node.Name)
+		}
+
 		for _, p := range node.Parameters {
 			c.symTable.Define(p.Value)
 		}
@@ -253,15 +257,21 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpReturn)
 		}
 
+		freeSyms := c.symTable.FreeSyms
 		numLocals := c.symTable.numDefinitions
 		instructions := c.leaveScope()
+
+		for _, s := range freeSyms {
+			c.loadSymbol(s)
+		}
 
 		compiledFn := &object.CompiledFunc{
 			Instructions: instructions,
 			NumLocals:    numLocals,
 			NumParams:    len(node.Parameters),
 		}
-		c.emit(code.OpConstant, c.addConstant(compiledFn))
+		fnIndex := c.addConstant(compiledFn)
+		c.emit(code.OpClosure, fnIndex, len(freeSyms))
 	case *ast.ReturnStatement:
 		err := c.Compile(node.ReturnValue)
 		if err != nil {
@@ -401,5 +411,9 @@ func (c *Compiler) loadSymbol(s Sym) {
 		c.emit(code.OpGetLocal, s.Index)
 	case BuiltinScope:
 		c.emit(code.OpGetBuiltin, s.Index)
+	case FreeScope:
+		c.emit(code.OpGetFree, s.Index)
+	case FunctionScope:
+		c.emit(code.OpCurrentClosure)
 	}
 }

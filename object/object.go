@@ -23,6 +23,7 @@ const (
 	ARRAY_OBJ         = "ARRAY"
 	HASH_OBJ          = "HASH"
 	COMPILED_FUNC_OBJ = "COMPILED_FUNC_OBJ"
+	CLOSURE_OBJ       = "CLOSURE_OBJ"
 )
 
 type Object interface {
@@ -189,4 +190,14 @@ type CompiledFunc struct {
 func (cf *CompiledFunc) Type() ObjectType { return COMPILED_FUNC_OBJ }
 func (cf *CompiledFunc) Inspect() string {
 	return fmt.Sprintf("CompiledFunction[%p]", cf)
+}
+
+type Closure struct {
+	Fn   *CompiledFunc
+	Free []Object
+}
+
+func (c *Closure) Type() ObjectType { return CLOSURE_OBJ }
+func (c *Closure) Inspect() string {
+	return fmt.Sprintf("Closure[%p]", c)
 }
