@@ -3,8 +3,9 @@ package compiler
 type SymScope string
 
 const (
-	GlobalScope SymScope = "GLOBAL"
-	LocalScope  SymScope = "LOCAL"
+	GlobalScope  SymScope = "GLOBAL"
+	LocalScope   SymScope = "LOCAL"
+	BuiltinScope SymScope = "BUILTIN"
 )
 
 type Sym struct {
@@ -49,4 +50,10 @@ func NewEnclosedSymTable(outer *SymTable) *SymTable {
 	s := NewSymTable()
 	s.Outer = outer
 	return s
+}
+
+func (s *SymTable) DefineBuiltin(index int, name string) Sym {
+	sym := Sym{Name: name, Index: index, Scope: BuiltinScope}
+	s.store[name] = sym
+	return sym
 }

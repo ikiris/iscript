@@ -41,9 +41,16 @@ func New() *Compiler {
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
 	}
+
+	symTable := NewSymTable()
+
+	for i, v := range object.Builtins {
+		symTable.DefineBuiltin(i, v.Name)
+	}
+
 	return &Compiler{
 		constants:  []object.Object{},
-		symTable:   NewSymTable(),
+		symTable:   symTable,
 		scopes:     []CompilationScope{mainScope},
 		scopeIndex: 0,
 	}
@@ -184,11 +191,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if !ok {
 			return fmt.Errorf("undefined variable: %s", node.Value)
 		}
-		scp := code.OpGetLocal
-		if sym.Scope == GlobalScope {
-			scp = code.OpGetGlobal
-		}
-		c.emit(scp, sym.Index)
+		c.loadSymbol(sym)
 	case *ast.StringLiteral:
 		str := &object.String{Value: node.Value}
 		c.emit(code.OpConstant, c.addConstant(str))
@@ -388,4 +391,15 @@ func (c *Compiler) replaceLastPopWithReturn() {
 	c.replaceInstruction(lastPos, code.Make(code.OpRetVal))
 
 	c.scopes[c.scopeIndex].lastInstruction.Opcode = code.OpRetVal
+}
+
+func (c *Compiler) loadSymbol(s Sym) {
+	switch s.Scope {
+	case GlobalScope:
+		c.emit(code.OpGetGlobal, s.Index)
+	case LocalScope:
+		c.emit(code.OpGetLocal, s.Index)
+	case BuiltinScope:
+		c.emit(code.OpGetBuiltin, s.Index)
+	}
 }
