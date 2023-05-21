@@ -703,3 +703,54 @@ func TestRecursiveFunctions(t *testing.T) {
 		}}
 	runVmTests(t, tests)
 }
+
+func TestFib(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			input: `
+			let fib = fn(x) {
+				if (x == 0) {
+					return 0;
+				};
+				if (x == 1) {
+					return 1;
+				};
+				fib(x - 1) + fib(x - 2);
+			};
+			fib(15);
+			`,
+			expected: 610,
+		},
+	}
+	runVmTests(t, tests)
+}
+
+func TestMemoFib(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			input: `
+			let cache = {};
+			let memo = fn(f, x) {
+				if (cache[x] != null) {
+					return cache[x];
+				};
+				let c = f(x);
+				updateHash(cache, x, c);
+				return c;
+			};
+			let fib = fn(x) {
+				if (x == 0) {
+					return 0;
+				};
+				if (x == 1) {
+					return 1;
+				};
+				memo(fib, x - 1) + memo(fib, x - 2);
+			};
+			memo(fib, 35);
+			`,
+			expected: 9227465,
+		},
+	}
+	runVmTests(t, tests)
+}

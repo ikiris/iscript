@@ -8,6 +8,8 @@ import (
 	"iscript/object"
 	"iscript/parser"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 type compilerTestCase struct {
@@ -122,15 +124,10 @@ func testInstructions(
 ) error {
 	concatted := concatInstructions(expected)
 
-	if len(actual) != len(concatted) {
-		return fmt.Errorf("wrong instructions length.\nwant=%q\ngot=%q", concatted, actual)
+	if diff := cmp.Diff(concatted.String(), actual.String()); diff != "" {
+		return fmt.Errorf("instructions mismatch (-want +got):\n%s", diff)
 	}
 
-	for i, ins := range concatted {
-		if actual[i] != ins {
-			return fmt.Errorf("wrong instruction at %d.\nwant=%q\ngot=%q", i, concatted, actual)
-		}
-	}
 	return nil
 }
 
@@ -1025,6 +1022,119 @@ func TestRecursiveFunctions(t *testing.T) {
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpGetGlobal, 0),
 				code.Make(code.OpCall, 0),
+				code.Make(code.OpPop),
+			},
+		},
+	}
+	runCompilerTests(t, tests)
+}
+
+func TestMemoFib(t *testing.T) {
+	tests := []compilerTestCase{
+		{
+			input: `
+			let cache = {};
+			let memo = fn(f, x) {
+				if (cache[x] != null) {
+					return cache[x];
+				};
+				let c = f(x);
+				updateHash(cache, x, c);
+				return c;
+			};
+			let fib = fn(x) {
+				if (x == 0) {
+					return 0;
+				};
+				if (x == 1) {
+					return 1;
+				};
+				memo(fib, x - 1) + memo(fib, x - 2);
+			};
+			memo(fib, 35);
+			`,
+			expectedConstants: []interface{}{
+				[]code.Instructions{
+					code.Make(code.OpGetGlobal, 0),
+					code.Make(code.OpGetLocal, 1),
+					code.Make(code.OpIndex),
+					code.Make(code.OpNull),
+					code.Make(code.OpNotEqual),
+					code.Make(code.OpJNT, 21),
+					code.Make(code.OpGetGlobal, 0),
+					code.Make(code.OpGetLocal, 1),
+					code.Make(code.OpIndex),
+					code.Make(code.OpRetVal),
+					code.Make(code.OpJmp, 22),
+					code.Make(code.OpNull),
+					code.Make(code.OpPop),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpGetLocal, 1),
+					code.Make(code.OpCall, 1),
+					code.Make(code.OpSetLocal, 2),
+					code.Make(code.OpGetBuiltin, 6),
+					code.Make(code.OpGetGlobal, 0),
+					code.Make(code.OpGetLocal, 1),
+					code.Make(code.OpGetLocal, 2),
+					code.Make(code.OpCall, 3),
+					//code.Make(code.OpSetLocal, 3),
+					code.Make(code.OpPop),
+					code.Make(code.OpGetLocal, 2),
+					code.Make(code.OpRetVal),
+				},
+				0,
+				0,
+				1,
+				1,
+				1,
+				2,
+				[]code.Instructions{
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpConstant, 1),
+					code.Make(code.OpEqual),
+					code.Make(code.OpJNT, 16),
+					code.Make(code.OpConstant, 2),
+					code.Make(code.OpRetVal),
+					code.Make(code.OpJmp, 17),
+					code.Make(code.OpNull),
+					code.Make(code.OpPop),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpConstant, 3),
+					code.Make(code.OpEqual),
+					code.Make(code.OpJNT, 34),
+					code.Make(code.OpConstant, 4),
+					code.Make(code.OpRetVal),
+					code.Make(code.OpJmp, 35),
+					code.Make(code.OpNull),
+					code.Make(code.OpPop),
+					code.Make(code.OpGetGlobal, 1),
+					code.Make(code.OpCurrentClosure),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpConstant, 5),
+					code.Make(code.OpSub),
+					code.Make(code.OpCall, 2),
+					code.Make(code.OpGetGlobal, 1),
+					code.Make(code.OpCurrentClosure),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpConstant, 6),
+					code.Make(code.OpSub),
+					code.Make(code.OpCall, 2),
+					code.Make(code.OpAdd),
+					code.Make(code.OpRetVal),
+				},
+				35,
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpHash),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpClosure, 0, 0),
+				code.Make(code.OpSetGlobal, 1),
+				code.Make(code.OpClosure, 7, 0),
+				code.Make(code.OpSetGlobal, 2),
+				code.Make(code.OpGetGlobal, 1),
+				code.Make(code.OpGetGlobal, 2),
+				code.Make(code.OpConstant, 8),
+				code.Make(code.OpCall, 2),
 				code.Make(code.OpPop),
 			},
 		},

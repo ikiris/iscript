@@ -458,3 +458,44 @@ func TestHashIndex(t *testing.T) {
 		}
 	}
 }
+
+func TestMemoFib(t *testing.T) {
+	tests := []struct {
+		input string
+		want  interface{}
+	}{
+		{
+			input: `
+			let cache = {};
+			let memo = fn(f, x) {
+				if (cache[x] != null) {
+					return cache[x];
+				};
+				let c = f(x);
+				updateHash(cache, x, c);
+				return c;
+			};
+			let fib = fn(x) {
+				if (x == 0) {
+					return 0;
+				};
+				if (x == 1) {
+					return 1;
+				};
+				memo(fib, x - 1) + memo(fib, x - 2);
+			};
+			memo(fib, 35);
+			`,
+			want: 9227465,
+		},
+	}
+	for _, tt := range tests {
+		got := testEval(t, tt.input)
+		intg, ok := tt.want.(int)
+		if ok {
+			testIntegerObject(t, got, int64(intg))
+		} else {
+			testNullObj(t, got)
+		}
+	}
+}

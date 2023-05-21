@@ -170,6 +170,14 @@ func (b *Boolean) expressionNode()      {}
 func (b *Boolean) TokenLiteral() string { return b.Token.Literal }
 func (b *Boolean) String() string       { return b.Token.Literal }
 
+type NULL struct {
+	Token token.Token
+}
+
+func (b *NULL) expressionNode()      {}
+func (b *NULL) TokenLiteral() string { return b.Token.Literal }
+func (b *NULL) String() string       { return b.Token.Literal }
+
 type IfExpression struct {
 	Token       token.Token
 	Condition   Expression

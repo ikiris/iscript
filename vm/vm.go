@@ -7,7 +7,7 @@ import (
 	"iscript/object"
 )
 
-const StackSize = 2048
+const StackSize = 4096
 const GlobalSize = 65536
 const MaxFrames = 1024
 
@@ -503,7 +503,7 @@ func (vm *VM) executeCall(numArgs int) error {
 	case *object.Builtin:
 		return vm.callBuiltin(callee, numArgs)
 	default:
-		return fmt.Errorf("calling non-function and non-built-in")
+		return fmt.Errorf("calling non-function and non-built-in %T", callee)
 	}
 }
 

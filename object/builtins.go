@@ -108,6 +108,27 @@ var Builtins = []struct {
 			return &Array{Elements: newElm}
 		}},
 	},
+	{
+		"updateHash",
+		&Builtin{Fn: func(args ...Object) Object {
+			if len(args) != 3 {
+				return newError("wrong number of args: got=%d, want=2", len(args))
+			}
+			if args[0].Type() != HASH_OBJ {
+				return newError("argument 1 to `updateHash` must be HASH, got=%s", args[0].Type())
+			}
+			i, ok := args[1].(Hashable)
+			if !ok {
+				return newError("argument 2 to `updateHash` must be HASHKEY, got=%T", args[1].Type())
+			}
+
+			hk := i.HashKey()
+			h := args[0].(*Hash)
+			h.Pairs[hk] = HashPair{Key: args[1], Value: args[2]}
+
+			return nil
+		}},
+	},
 }
 
 func newError(format string, a ...interface{}) *Error {
