@@ -747,9 +747,9 @@ func TestMemoFib(t *testing.T) {
 				};
 				memo(fib, x - 1) + memo(fib, x - 2);
 			};
-			memo(fib, 150);
+			memo(fib, 92);
 			`,
-			expected: 6792540214324356296,
+			expected: 7540113804746346429,
 		},
 	}
 	runVmTests(t, tests)

@@ -35,7 +35,7 @@ let fib = fn(x) {
 	};
 	memo(fib, x - 1) + memo(fib, x - 2);
 };
-memo(fib, 150);
+memo(fib, 92);
 `
 
 func main() {
