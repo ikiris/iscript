@@ -1048,11 +1048,8 @@ func TestMemoFib(t *testing.T) {
 				};
 			};
 			let fib = fn(x, f) {
-				if (x == 0) {
-					return 0;
-				};
-				if (x == 1) {
-					return 1;
+				if (x < 2) {
+					return x;
 				};
 				f(x - 1, f) + f(x - 2, f);
 			};
@@ -1107,40 +1104,28 @@ func TestMemoFib(t *testing.T) {
 					code.Make(code.OpClosure, 2, 2),
 					code.Make(code.OpRetVal),
 				},
-				0,
-				0,
-				1,
-				1,
+				2,
 				1,
 				2,
 				[]code.Instructions{
-					code.Make(code.OpGetLocal, 0),
 					code.Make(code.OpConstant, 4),
-					code.Make(code.OpEqual),
-					code.Make(code.OpJNT, 16),
-					code.Make(code.OpConstant, 5),
-					code.Make(code.OpRetVal),
-					code.Make(code.OpJmp, 17),
-					code.Make(code.OpNull),
-					code.Make(code.OpPop),
 					code.Make(code.OpGetLocal, 0),
-					code.Make(code.OpConstant, 6),
-					code.Make(code.OpEqual),
-					code.Make(code.OpJNT, 34),
-					code.Make(code.OpConstant, 7),
+					code.Make(code.OpGreaterThan),
+					code.Make(code.OpJNT, 15),
+					code.Make(code.OpGetLocal, 0),
 					code.Make(code.OpRetVal),
-					code.Make(code.OpJmp, 35),
+					code.Make(code.OpJmp, 16),
 					code.Make(code.OpNull),
 					code.Make(code.OpPop),
 					code.Make(code.OpGetLocal, 1),
 					code.Make(code.OpGetLocal, 0),
-					code.Make(code.OpConstant, 8),
+					code.Make(code.OpConstant, 5),
 					code.Make(code.OpSub),
 					code.Make(code.OpGetLocal, 1),
 					code.Make(code.OpCall, 2),
 					code.Make(code.OpGetLocal, 1),
 					code.Make(code.OpGetLocal, 0),
-					code.Make(code.OpConstant, 9),
+					code.Make(code.OpConstant, 6),
 					code.Make(code.OpSub),
 					code.Make(code.OpGetLocal, 1),
 					code.Make(code.OpCall, 2),
@@ -1154,14 +1139,14 @@ func TestMemoFib(t *testing.T) {
 				code.Make(code.OpSetGlobal, 0),
 				code.Make(code.OpClosure, 3, 0),
 				code.Make(code.OpSetGlobal, 1),
-				code.Make(code.OpClosure, 10, 0),
+				code.Make(code.OpClosure, 7, 0),
 				code.Make(code.OpSetGlobal, 2),
 				code.Make(code.OpGetGlobal, 0),
 				code.Make(code.OpGetGlobal, 1),
 				code.Make(code.OpGetGlobal, 2),
 				code.Make(code.OpCall, 1),
 				code.Make(code.OpCall, 1),
-				code.Make(code.OpConstant, 11),
+				code.Make(code.OpConstant, 8),
 				code.Make(code.OpCall, 1),
 				code.Make(code.OpPop),
 			},

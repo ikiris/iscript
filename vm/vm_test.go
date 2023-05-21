@@ -723,11 +723,8 @@ func TestFib(t *testing.T) {
 				};
 			};
 			let fib = fn(x, f) {
-				if (x == 0) {
-					return 0;
-				};
-				if (x == 1) {
-					return 1;
+				if (x < 2) {
+					return x;
 				};
 				f(x - 1, f) + f(x - 2, f);
 			};
