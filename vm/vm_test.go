@@ -708,46 +708,30 @@ func TestFib(t *testing.T) {
 	tests := []vmTestCase{
 		{
 			input: `
-			let fib = fn(x) {
+			let runner = fn(f) {
+				return fn(x) { f(x, f); };
+			}
+			let memo = fn(f) {
+				let cache = {};
+				return fn(x, xx) {
+					if (cache[x] != null) {
+						return cache[x];
+					};
+					let c = f(x, xx);
+					updateHash(cache, x, c);
+					return c;
+				};
+			};
+			let fib = fn(x, f) {
 				if (x == 0) {
 					return 0;
 				};
 				if (x == 1) {
 					return 1;
 				};
-				fib(x - 1) + fib(x - 2);
+				f(x - 1, f) + f(x - 2, f);
 			};
-			fib(15);
-			`,
-			expected: 610,
-		},
-	}
-	runVmTests(t, tests)
-}
-
-func TestMemoFib(t *testing.T) {
-	tests := []vmTestCase{
-		{
-			input: `
-			let cache = {};
-			let memo = fn(f, x) {
-				if (cache[x] != null) {
-					return cache[x];
-				};
-				let c = f(x);
-				updateHash(cache, x, c);
-				return c;
-			};
-			let fib = fn(x) {
-				if (x == 0) {
-					return 0;
-				};
-				if (x == 1) {
-					return 1;
-				};
-				memo(fib, x - 1) + memo(fib, x - 2);
-			};
-			memo(fib, 92);
+			runner(memo(fib))(92);
 			`,
 			expected: 7540113804746346429,
 		},

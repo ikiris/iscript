@@ -1033,53 +1033,78 @@ func TestMemoFib(t *testing.T) {
 	tests := []compilerTestCase{
 		{
 			input: `
-			let cache = {};
-			let memo = fn(f, x) {
-				if (cache[x] != null) {
-					return cache[x];
+			let runner = fn(f) {
+				return fn(x) { f(x, f); };
+			}
+			let memo = fn(f) {
+				let cache = {};
+				return fn(x, xx) {
+					if (cache[x] != null) {
+						return cache[x];
+					};
+					let c = f(x, xx);
+					updateHash(cache, x, c);
+					return c;
 				};
-				let c = f(x);
-				updateHash(cache, x, c);
-				return c;
 			};
-			let fib = fn(x) {
+			let fib = fn(x, f) {
 				if (x == 0) {
 					return 0;
 				};
 				if (x == 1) {
 					return 1;
 				};
-				memo(fib, x - 1) + memo(fib, x - 2);
+				f(x - 1, f) + f(x - 2, f);
 			};
-			memo(fib, 35);
+			runner(memo(fib))(92);
 			`,
 			expectedConstants: []interface{}{
 				[]code.Instructions{
-					code.Make(code.OpGetGlobal, 0),
-					code.Make(code.OpGetLocal, 1),
+					code.Make(code.OpGetFree, 0),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpGetFree, 0),
+					code.Make(code.OpCall, 2),
+					code.Make(code.OpRetVal),
+				},
+				[]code.Instructions{
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpClosure, 0, 1),
+					code.Make(code.OpRetVal),
+				},
+				[]code.Instructions{
+					code.Make(code.OpGetFree, 0),
+					code.Make(code.OpGetLocal, 0),
 					code.Make(code.OpIndex),
 					code.Make(code.OpNull),
 					code.Make(code.OpNotEqual),
-					code.Make(code.OpJNT, 21),
-					code.Make(code.OpGetGlobal, 0),
-					code.Make(code.OpGetLocal, 1),
+					code.Make(code.OpJNT, 19),
+					code.Make(code.OpGetFree, 0),
+					code.Make(code.OpGetLocal, 0),
 					code.Make(code.OpIndex),
 					code.Make(code.OpRetVal),
-					code.Make(code.OpJmp, 22),
+					code.Make(code.OpJmp, 20),
 					code.Make(code.OpNull),
 					code.Make(code.OpPop),
+					code.Make(code.OpGetFree, 1),
 					code.Make(code.OpGetLocal, 0),
 					code.Make(code.OpGetLocal, 1),
-					code.Make(code.OpCall, 1),
+					code.Make(code.OpCall, 2),
 					code.Make(code.OpSetLocal, 2),
 					code.Make(code.OpGetBuiltin, 6),
-					code.Make(code.OpGetGlobal, 0),
-					code.Make(code.OpGetLocal, 1),
+					code.Make(code.OpGetFree, 0),
+					code.Make(code.OpGetLocal, 0),
 					code.Make(code.OpGetLocal, 2),
 					code.Make(code.OpCall, 3),
-					//code.Make(code.OpSetLocal, 3),
 					code.Make(code.OpPop),
 					code.Make(code.OpGetLocal, 2),
+					code.Make(code.OpRetVal),
+				},
+				[]code.Instructions{
+					code.Make(code.OpHash),
+					code.Make(code.OpSetLocal, 1),
+					code.Make(code.OpGetLocal, 1),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpClosure, 2, 2),
 					code.Make(code.OpRetVal),
 				},
 				0,
@@ -1090,51 +1115,54 @@ func TestMemoFib(t *testing.T) {
 				2,
 				[]code.Instructions{
 					code.Make(code.OpGetLocal, 0),
-					code.Make(code.OpConstant, 1),
+					code.Make(code.OpConstant, 4),
 					code.Make(code.OpEqual),
 					code.Make(code.OpJNT, 16),
-					code.Make(code.OpConstant, 2),
+					code.Make(code.OpConstant, 5),
 					code.Make(code.OpRetVal),
 					code.Make(code.OpJmp, 17),
 					code.Make(code.OpNull),
 					code.Make(code.OpPop),
 					code.Make(code.OpGetLocal, 0),
-					code.Make(code.OpConstant, 3),
+					code.Make(code.OpConstant, 6),
 					code.Make(code.OpEqual),
 					code.Make(code.OpJNT, 34),
-					code.Make(code.OpConstant, 4),
+					code.Make(code.OpConstant, 7),
 					code.Make(code.OpRetVal),
 					code.Make(code.OpJmp, 35),
 					code.Make(code.OpNull),
 					code.Make(code.OpPop),
-					code.Make(code.OpGetGlobal, 1),
-					code.Make(code.OpCurrentClosure),
+					code.Make(code.OpGetLocal, 1),
 					code.Make(code.OpGetLocal, 0),
-					code.Make(code.OpConstant, 5),
+					code.Make(code.OpConstant, 8),
 					code.Make(code.OpSub),
+					code.Make(code.OpGetLocal, 1),
 					code.Make(code.OpCall, 2),
-					code.Make(code.OpGetGlobal, 1),
-					code.Make(code.OpCurrentClosure),
+					code.Make(code.OpGetLocal, 1),
 					code.Make(code.OpGetLocal, 0),
-					code.Make(code.OpConstant, 6),
+					code.Make(code.OpConstant, 9),
 					code.Make(code.OpSub),
+					code.Make(code.OpGetLocal, 1),
 					code.Make(code.OpCall, 2),
 					code.Make(code.OpAdd),
 					code.Make(code.OpRetVal),
 				},
-				35,
+				92,
 			},
 			expectedInstructions: []code.Instructions{
-				code.Make(code.OpHash),
+				code.Make(code.OpClosure, 1, 0),
 				code.Make(code.OpSetGlobal, 0),
-				code.Make(code.OpClosure, 0, 0),
+				code.Make(code.OpClosure, 3, 0),
 				code.Make(code.OpSetGlobal, 1),
-				code.Make(code.OpClosure, 7, 0),
+				code.Make(code.OpClosure, 10, 0),
 				code.Make(code.OpSetGlobal, 2),
+				code.Make(code.OpGetGlobal, 0),
 				code.Make(code.OpGetGlobal, 1),
 				code.Make(code.OpGetGlobal, 2),
-				code.Make(code.OpConstant, 8),
-				code.Make(code.OpCall, 2),
+				code.Make(code.OpCall, 1),
+				code.Make(code.OpCall, 1),
+				code.Make(code.OpConstant, 11),
+				code.Make(code.OpCall, 1),
 				code.Make(code.OpPop),
 			},
 		},
